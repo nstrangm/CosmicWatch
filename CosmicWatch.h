@@ -155,20 +155,22 @@ UInt_t CosmicWatch::GetNCoincidences(Double_t t0, Double_t t1)
 TH1F CosmicWatch::GetCoincidenceRate(Double_t tStart, Double_t tEnd, Double_t tBinWidth)
 {
   UInt_t EventStart = GetEventAfterTime((UInt_t)(tStart * 1000));
-  UInt_t EventEnd = GetEventAfterTime((UInt_t)(tEnd * 1000));
+  UInt_t EventEnd = GetEventAfterTime((UInt_t)(tEnd * 1000))-1;
   UInt_t iEvent = EventStart;
 
   TH1F h(Form("h_%.1f_%.1f_%.1f", tStart, tEnd, tBinWidth), Form("Rate in %.1f second intervals", tBinWidth), (tEnd - tStart)/tBinWidth, tStart, tEnd);
 
-  for (Int_t iBin = 0; iBin < h.GetXaxis()->GetNbins() + 1; iBin++) {
+  for (Int_t iBin = 1; iBin < h.GetXaxis()->GetNbins() + 1; iBin++) {
     UInt_t tUpperBinEdge = 1000*(h.GetBinCenter(iBin) + h.GetBinWidth(iBin) / 2.);
     UInt_t NCoincidencesInBin = 0;
+    UInt_t DeadTimeSum = 0; // in us
     for (; CosmicVector.at(iEvent).t < tUpperBinEdge; iEvent++) {
+      DeadTimeSum+=CosmicVector.at(iEvent).dt;
       if (CosmicVector.at(iEvent).Coincident)
         NCoincidencesInBin++;
     }
-    h.SetBinContent(iBin,((Double_t)NCoincidencesInBin)/tBinWidth);
-    h.SetBinError(iBin,TMath::Sqrt((Double_t)NCoincidencesInBin)/tBinWidth);
+    h.SetBinContent(iBin,((Double_t)NCoincidencesInBin)/(tBinWidth-((Double_t)DeadTimeSum)/1000000.));
+    h.SetBinError(iBin,TMath::Sqrt((Double_t)NCoincidencesInBin)/(tBinWidth-((Double_t)DeadTimeSum)/1000000.));
   }
 
   return h;
